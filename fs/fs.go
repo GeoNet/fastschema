@@ -80,7 +80,6 @@ func (dc *DiskConfig) Clone() *DiskConfig {
 		Name:            dc.Name,
 		Driver:          dc.Driver,
 		Root:            dc.Root,
-		PublicPath:      dc.PublicPath,
 		BaseURL:         dc.BaseURL,
 		GetBaseURL:      dc.GetBaseURL,
 		Provider:        dc.Provider,
