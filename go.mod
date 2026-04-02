@@ -4,8 +4,6 @@ go 1.24
 
 toolchain go1.24.7
 
-replace github.com/fastschema/fastschema => ./
-
 require (
 	ariga.io/atlas v0.36.1
 	cloud.google.com/go/auth v0.16.2
