@@ -1,10 +1,8 @@
-module github.com/GeoNet/fastschema
+module github.com/fastschema/fastschema
 
 go 1.24
 
 toolchain go1.24.7
-
-replace github.com/fastschema/fastschema => ./
 
 require (
 	ariga.io/atlas v0.36.1
