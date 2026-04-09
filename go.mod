@@ -1,8 +1,8 @@
 module github.com/fastschema/fastschema
 
-go 1.24
+go 1.25
 
-toolchain go1.24.7
+toolchain go1.25.9
 
 require (
 	ariga.io/atlas v0.36.1
@@ -13,14 +13,13 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.23.0
-	github.com/expr-lang/expr v1.17.5
+	github.com/expr-lang/expr v1.17.7
 	github.com/fasthttp/websocket v1.5.12
-	github.com/fastschema/fastschema v0.9.6
 	github.com/fastschema/qjs v0.0.6
 	github.com/fatih/color v1.18.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/gofiber/contrib/websocket v1.3.4
-	github.com/gofiber/fiber/v2 v2.52.9
+	github.com/gofiber/fiber/v2 v2.52.12
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/hjson/hjson-go/v4 v4.5.0

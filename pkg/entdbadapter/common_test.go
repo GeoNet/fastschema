@@ -138,7 +138,7 @@ func TestCreateDBDSN(t *testing.T) {
 	assert.Equal(t, expectedMySQLDSN, CreateDBDSN(config))
 
 	config.Driver = "pgx"
-	expectedPGXDSN := "host=localhost port=3306 user=user dbname=database password=pass sslmode=disable"
+	expectedPGXDSN := "host=localhost port=3306 user=user dbname=database password=pass sslmode=prefer"
 	assert.Equal(t, expectedPGXDSN, CreateDBDSN(config))
 
 	config.Driver = "sqlite"
