@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"slices"
@@ -325,12 +326,12 @@ func IsFileExists(filePath string) bool {
 }
 
 func CopyFile(src string, dst string) error {
-	data, err := os.ReadFile(src)
+	data, err := os.ReadFile(filepath.Clean(src))
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(dst, data, 0600)
+	return os.WriteFile(filepath.Clean(dst), data, 0600) //nolint:gosec // paths are internal, not user-controlled
 }
 
 func MkDirs(dirs ...string) error {

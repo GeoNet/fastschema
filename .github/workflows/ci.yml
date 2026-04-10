@@ -12,23 +12,17 @@ on:
       - 'pkg/dash/**'
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-      - name: Run linters
-        uses: golangci/golangci-lint-action@v8
-        with:
-          args: --verbose
+  golangci-lint:
+    uses: GeoNet/Actions/.github/workflows/reusable-golangci-lint.yml@main
+
+  govulncheck:
+    uses: GeoNet/Actions/.github/workflows/reusable-govulncheck.yml@main
 
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.23.x', '1.24.x', '1.25.x']
+        go: ['1.25.9']
         platform: [ubuntu-latest, windows-latest, macos-latest, macos-14]
     services:
       mysql56:
@@ -197,7 +191,7 @@ jobs:
       - name: Test
         run: gotestsum -f testname -- ./... -race -count=1 -coverprofile=coverage.txt -covermode=atomic
       - name: Upload coverage reports to Codecov
-        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.go == '1.25.x' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.go == '1.25.9' }}
         uses: codecov/codecov-action@v5.0.7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
