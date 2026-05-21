@@ -74,6 +74,7 @@ func NewS3(config *RcloneS3Config) (fs.Disk, error) {
 	cfgMap.Set("secret_access_key", config.SecretAccessKey)
 	cfgMap.Set("acl", config.ACL)
 	cfgMap.Set("bucket_acl", config.BucketACL)
+	cfgMap.Set("no_head_object", "true")
 	if config.AccessKeyID == "" && config.SecretAccessKey == "" {
 		cfgMap.Set("env_auth", "true")
 	}
