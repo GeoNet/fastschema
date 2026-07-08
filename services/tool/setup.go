@@ -80,7 +80,8 @@ func CreateRole(ctx context.Context, dbc db.Client, roleData *fs.Role) (*fs.Role
 	return db.Create[*fs.Role](ctx, dbc, entity.New(id.String()).
 		Set("name", roleData.Name).
 		Set("description", roleData.Description).
-		Set("root", roleData.Root))
+		Set("root", roleData.Root).
+		Set("system", roleData.System))
 }
 
 func ResetAdminPassword(ctx context.Context,

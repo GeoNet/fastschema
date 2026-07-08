@@ -65,6 +65,14 @@ func TestSetup(t *testing.T) {
 	}))
 
 	assert.Equal(t, 3, roleCount)
+
+	// The default roles must carry the system flag so the rename/delete guards
+	// (which key off it) protect them.
+	for _, name := range []string{fs.RoleAdmin.Name, fs.RoleUser.Name, fs.RoleGuest.Name} {
+		role := utils.Must(roleModel.Query(db.EQ("name", name)).First(context.Background()))
+		assert.Equal(t, true, role.Get("system"), "role %s must be a system role", name)
+	}
+
 	userModel := utils.Must(entDB.Model("user"))
 	ctx := context.WithValue(context.Background(), "keeppassword", "true")
 	adminUser := utils.Must(userModel.Query(db.EQ("username", "admin")).First(ctx))
