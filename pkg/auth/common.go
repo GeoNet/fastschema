@@ -72,6 +72,8 @@ func ValidateRegisterData(
 	dbClient db.Client,
 	payload *Register,
 ) (err error) {
+	payload.normalize()
+
 	if !utils.IsValidEmail(payload.Email) ||
 		payload.Password == "" ||
 		payload.ConfirmPassword == "" {

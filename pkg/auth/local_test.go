@@ -2,11 +2,13 @@ package auth_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/fastschema/fastschema/db"
 	"github.com/fastschema/fastschema/fs"
 	"github.com/fastschema/fastschema/logger"
 	"github.com/fastschema/fastschema/pkg/auth"
@@ -144,13 +146,22 @@ func TestLocalAuthRegister(t *testing.T) {
 		"last_name": "Three"
 	}`)
 
-	// Case 3: Register failed because of invalid app key
+	// Case 3: With manual activation, an unusable app key must not fail
+	// registration: no activation email is built, so token encryption is never
+	// exercised and the user is created normally.
 	{
 		config.key = "invalid"
-		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(validData))
+		brokenKeyData := []byte(`{
+			"username": "user03b",
+			"email": "user03b@local.ltd",
+			"provider": "local",
+			"password": "user03b",
+			"confirm_password": "user03b"
+		}`)
+		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(brokenKeyData))
 		resp, _ := server.Test(req)
 		defer func() { assert.NoError(t, resp.Body.Close()) }()
-		assert.Equal(t, 500, resp.StatusCode)
+		assert.Equal(t, 200, resp.StatusCode)
 		config.key = testKey
 	}
 
@@ -161,6 +172,74 @@ func TestLocalAuthRegister(t *testing.T) {
 		defer func() { assert.NoError(t, resp.Body.Close()) }()
 		assert.Equal(t, 200, resp.StatusCode)
 		assert.Contains(t, utils.Must(utils.ReadCloserToString(resp.Body)), `{"activation":"manual"}`)
+	}
+
+	// Case 5: The SDK sends password_confirmation instead of confirm_password.
+	{
+		aliasData := []byte(`{
+			"username": "user04",
+			"email": "user04@local.ltd",
+			"provider": "local",
+			"password": "user04",
+			"password_confirmation": "user04"
+		}`)
+		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(aliasData))
+		resp, _ := server.Test(req)
+		defer func() { assert.NoError(t, resp.Body.Close()) }()
+		assert.Equal(t, 200, resp.StatusCode)
+		assert.Contains(t, utils.Must(utils.ReadCloserToString(resp.Body)), `{"activation":"manual"}`)
+	}
+}
+
+func TestLocalAuthRegisterEmailActivation(t *testing.T) {
+	mailer := &MockMailer{}
+	config := &testAppConfig{activation: "email", createData: true, mailer: mailer}
+	provider := createLocalAuthProvider(config)
+	server := createServer(t, fs.Post("/user/register", provider.Register, &fs.Meta{Public: true}))
+
+	// Case 1: A mail-build failure (unusable app key) must not roll back the
+	// user. Registration succeeds, the user is persisted, and no mail is sent.
+	{
+		config.key = "invalid"
+		data := []byte(`{
+			"username": "mailfail",
+			"email": "mailfail@local.ltd",
+			"provider": "local",
+			"password": "secret",
+			"confirm_password": "secret"
+		}`)
+		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(data))
+		resp, _ := server.Test(req)
+		defer func() { assert.NoError(t, resp.Body.Close()) }()
+		assert.Equal(t, 200, resp.StatusCode)
+		assert.Contains(t, utils.Must(utils.ReadCloserToString(resp.Body)), `{"activation":"email"}`)
+		config.key = testKey
+
+		count := utils.Must(db.Builder[*fs.User](config.db).
+			Where(db.EQ("email", "mailfail@local.ltd")).
+			Count(context.Background()))
+		assert.Equal(t, 1, count)
+		assert.Empty(t, mailer.GetSentMails())
+	}
+
+	// Case 2: Happy path builds and sends the activation email.
+	{
+		data := []byte(`{
+			"username": "mailok",
+			"email": "mailok@local.ltd",
+			"provider": "local",
+			"password": "secret",
+			"confirm_password": "secret"
+		}`)
+		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(data))
+		resp, _ := server.Test(req)
+		defer func() { assert.NoError(t, resp.Body.Close()) }()
+		assert.Equal(t, 200, resp.StatusCode)
+
+		// SendConfirmationEmail runs in a goroutine; wait for it to fire.
+		assert.Eventually(t, func() bool {
+			return len(mailer.GetSentMails()) == 1
+		}, 2*time.Second, 10*time.Millisecond)
 	}
 }
 
@@ -429,7 +508,19 @@ func TestLocalAuthResetPassword(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode)
 	}
 
-	// Case 4: Update password failed
+	// Case 4: The SDK sends password_confirmation instead of confirm_password.
+	{
+		token := utils.Must(utils.CreateConfirmationToken(config.user01ID, config.key))
+		req := httptest.NewRequest(
+			"POST", "/user/recover/reset",
+			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "password_confirmation": "123"}`)),
+		)
+		resp, _ := server.Test(req)
+		defer func() { assert.NoError(t, resp.Body.Close()) }()
+		assert.Equal(t, 200, resp.StatusCode)
+	}
+
+	// Case 5: Update password failed
 	{
 		token := utils.Must(utils.CreateConfirmationToken(config.user01ID, config.key))
 		assert.NoError(t, config.db.Close())

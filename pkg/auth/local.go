@@ -174,8 +174,10 @@ func (la *LocalProvider) Register(c fs.Context, payload *Register) (*Activation,
 	}
 
 	userEntity := payload.Entity(la.activationMethod, la.Name(), userRole.ID)
+	var user *fs.User
 	if err := db.WithTx(la.db(), c, func(tx db.Client) error {
-		user, err := db.Builder[*fs.User](tx).Create(c, userEntity)
+		var err error
+		user, err = db.Builder[*fs.User](tx).Create(c, userEntity)
 		if err != nil {
 			c.Logger().Errorf(MSG_USER_SAVE_ERROR+": %w", err)
 			return ERR_SAVE_USER
@@ -188,19 +190,24 @@ func (la *LocalProvider) Register(c fs.Context, payload *Register) (*Activation,
 			return ERR_SAVE_USER
 		}
 
-		user.ProviderID = user.ID.String()
-		email, err := CreateActivationEmail(la, user)
-		if err != nil {
-			c.Logger().Errorf(MSG_CREATE_ACTIVATION_MAIL_ERROR, err)
-			return ERR_SAVE_USER
-		}
-
-		go SendConfirmationEmail(la, c.Logger(), email)
-
 		return nil
 	}); err != nil {
 		c.Logger().Errorf(MSG_USER_SAVE_ERROR+": %w", err)
 		return nil, ERR_SAVE_USER
+	}
+
+	// Build and send the activation email outside the transaction so a mail-build
+	// failure (e.g. a misconfigured app key that breaks token encryption) cannot
+	// roll back a user who was already created successfully. Only relevant when
+	// activation happens by email.
+	if la.activationMethod == "email" {
+		user.ProviderID = user.ID.String()
+		email, err := CreateActivationEmail(la, user)
+		if err != nil {
+			c.Logger().Errorf(MSG_CREATE_ACTIVATION_MAIL_ERROR, err)
+		} else {
+			go SendConfirmationEmail(la, c.Logger(), email)
+		}
 	}
 
 	return &Activation{Activation: la.activationMethod}, nil
@@ -514,6 +521,8 @@ func (la *LocalProvider) ResetPassword(c fs.Context, data *ResetPassword) (_ boo
 	default:
 		return false, ERR_INVALID_TOKEN
 	}
+
+	data.normalize()
 
 	if data.Password == "" || data.ConfirmPassword == "" || data.Password != data.ConfirmPassword {
 		return false, errors.UnprocessableEntity(MSG_INVALID_PASSWORD)

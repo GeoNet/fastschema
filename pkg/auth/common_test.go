@@ -310,6 +310,20 @@ func TestValidateRegisterData(t *testing.T) {
 			wantErr: auth.MSG_EXISTING_USER_WITH_EMAIL,
 		},
 		{
+			name: "confirm_password wins over password_confirmation alias",
+			db:   &db.NoopClient{},
+			args: args{
+				payload: &auth.Register{
+					Username:             "newUser",
+					Email:                "new@site.local",
+					Password:             "password",
+					ConfirmPassword:      "differentPassword",
+					PasswordConfirmation: "password",
+				},
+			},
+			wantErr: auth.MSG_INVALID_PASSWORD,
+		},
+		{
 			name: "successful validation",
 			db: &MockDBClient{
 				model: &MockDBModel{
@@ -322,6 +336,23 @@ func TestValidateRegisterData(t *testing.T) {
 					Email:           "new@site.local",
 					Password:        "password",
 					ConfirmPassword: "password",
+				},
+			},
+			wantErr: "",
+		},
+		{
+			name: "successful validation via password_confirmation alias",
+			db: &MockDBClient{
+				model: &MockDBModel{
+					entities: []*entity.Entity{},
+				},
+			},
+			args: args{
+				payload: &auth.Register{
+					Username:             "newUser",
+					Email:                "new@site.local",
+					Password:             "password",
+					PasswordConfirmation: "password",
 				},
 			},
 			wantErr: "",
