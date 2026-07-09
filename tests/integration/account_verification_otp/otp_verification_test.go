@@ -717,7 +717,7 @@ func testPasswordResetWithSessionSuccess(dbc db.Client) func(t *testing.T) {
 		reqBody := map[string]string{
 			"session_id":       sessionUUID.String(),
 			"password":         "newpassword123",
-			"confirm_password": "newpassword123",
+			"password_confirmation": "newpassword123",
 		}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("POST", "/api/auth/local/recover/reset", bytes.NewReader(body))
@@ -762,7 +762,7 @@ func testPasswordResetWithUnverifiedSession(dbc db.Client) func(t *testing.T) {
 		reqBody := map[string]string{
 			"session_id":       sessionUUID.String(),
 			"password":         "newpassword123",
-			"confirm_password": "newpassword123",
+			"password_confirmation": "newpassword123",
 		}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("POST", "/api/auth/local/recover/reset", bytes.NewReader(body))
@@ -800,7 +800,7 @@ func testPasswordResetPasswordMismatch(dbc db.Client) func(t *testing.T) {
 		reqBody := map[string]string{
 			"session_id":       sessionUUID.String(),
 			"password":         "password1",
-			"confirm_password": "password2",
+			"password_confirmation": "password2",
 		}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("POST", "/api/auth/local/recover/reset", bytes.NewReader(body))
@@ -1030,7 +1030,7 @@ func testFullRecoveryOTPFlow(dbc db.Client) func(t *testing.T) {
 		resetBody := map[string]string{
 			"session_id":       sessionID,
 			"password":         "newSecurePassword123",
-			"confirm_password": "newSecurePassword123",
+			"password_confirmation": "newSecurePassword123",
 		}
 		body, _ = json.Marshal(resetBody)
 		req = httptest.NewRequest("POST", "/api/auth/local/recover/reset", bytes.NewReader(body))

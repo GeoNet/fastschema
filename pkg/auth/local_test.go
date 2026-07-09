@@ -141,7 +141,7 @@ func TestLocalAuthRegister(t *testing.T) {
 		"email": "user03@local.ltd",
 		"provider": "local",
 		"password": "user03",
-		"confirm_password": "user03",
+		"password_confirmation": "user03",
 		"first_name": "User",
 		"last_name": "Three"
 	}`)
@@ -156,7 +156,7 @@ func TestLocalAuthRegister(t *testing.T) {
 			"email": "user03b@local.ltd",
 			"provider": "local",
 			"password": "user03b",
-			"confirm_password": "user03b"
+			"password_confirmation": "user03b"
 		}`)
 		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(brokenKeyData))
 		resp, _ := server.Test(req)
@@ -168,22 +168,6 @@ func TestLocalAuthRegister(t *testing.T) {
 	// Case 4: The request body is valid
 	{
 		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(validData))
-		resp, _ := server.Test(req)
-		defer func() { assert.NoError(t, resp.Body.Close()) }()
-		assert.Equal(t, 200, resp.StatusCode)
-		assert.Contains(t, utils.Must(utils.ReadCloserToString(resp.Body)), `{"activation":"manual"}`)
-	}
-
-	// Case 5: The SDK sends password_confirmation instead of confirm_password.
-	{
-		aliasData := []byte(`{
-			"username": "user04",
-			"email": "user04@local.ltd",
-			"provider": "local",
-			"password": "user04",
-			"password_confirmation": "user04"
-		}`)
-		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(aliasData))
 		resp, _ := server.Test(req)
 		defer func() { assert.NoError(t, resp.Body.Close()) }()
 		assert.Equal(t, 200, resp.StatusCode)
@@ -206,7 +190,7 @@ func TestLocalAuthRegisterEmailActivation(t *testing.T) {
 			"email": "mailfail@local.ltd",
 			"provider": "local",
 			"password": "secret",
-			"confirm_password": "secret"
+			"password_confirmation": "secret"
 		}`)
 		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(data))
 		resp, _ := server.Test(req)
@@ -229,7 +213,7 @@ func TestLocalAuthRegisterEmailActivation(t *testing.T) {
 			"email": "mailok@local.ltd",
 			"provider": "local",
 			"password": "secret",
-			"confirm_password": "secret"
+			"password_confirmation": "secret"
 		}`)
 		req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(data))
 		resp, _ := server.Test(req)
@@ -488,7 +472,7 @@ func TestLocalAuthResetPassword(t *testing.T) {
 		token := utils.Must(utils.CreateConfirmationToken(config.user01ID, config.key))
 		req := httptest.NewRequest(
 			"POST", "/user/recover/reset",
-			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "confirm_password": "1234"}`)),
+			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "password_confirmation": "1234"}`)),
 		)
 		resp, _ := server.Test(req)
 		defer func() { assert.NoError(t, resp.Body.Close()) }()
@@ -501,18 +485,6 @@ func TestLocalAuthResetPassword(t *testing.T) {
 		token := utils.Must(utils.CreateConfirmationToken(config.user01ID, config.key))
 		req := httptest.NewRequest(
 			"POST", "/user/recover/reset",
-			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "confirm_password": "123"}`)),
-		)
-		resp, _ := server.Test(req)
-		defer func() { assert.NoError(t, resp.Body.Close()) }()
-		assert.Equal(t, 200, resp.StatusCode)
-	}
-
-	// Case 4: The SDK sends password_confirmation instead of confirm_password.
-	{
-		token := utils.Must(utils.CreateConfirmationToken(config.user01ID, config.key))
-		req := httptest.NewRequest(
-			"POST", "/user/recover/reset",
 			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "password_confirmation": "123"}`)),
 		)
 		resp, _ := server.Test(req)
@@ -520,13 +492,13 @@ func TestLocalAuthResetPassword(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode)
 	}
 
-	// Case 5: Update password failed
+	// Case 4: Update password failed
 	{
 		token := utils.Must(utils.CreateConfirmationToken(config.user01ID, config.key))
 		assert.NoError(t, config.db.Close())
 		req := httptest.NewRequest(
 			"POST", "/user/recover/reset",
-			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "confirm_password": "123"}`)),
+			bytes.NewReader([]byte(`{"token": "`+token+`", "password": "123", "password_confirmation": "123"}`)),
 		)
 		resp, _ := server.Test(req)
 		defer func() { assert.NoError(t, resp.Body.Close()) }()

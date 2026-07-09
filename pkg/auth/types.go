@@ -11,22 +11,12 @@ type LoginData struct {
 }
 
 type Register struct {
-	Username        string `json:"username"`
-	Email           string `json:"email"`
-	FirstName       string `json:"first_name"`
-	LastName        string `json:"last_name"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirm_password"`
-	// PasswordConfirmation is an accepted alias for ConfirmPassword, kept for
-	// compatibility with the published SDK which sends password_confirmation.
+	Username             string `json:"username"`
+	Email                string `json:"email"`
+	FirstName            string `json:"first_name"`
+	LastName             string `json:"last_name"`
+	Password             string `json:"password"`
 	PasswordConfirmation string `json:"password_confirmation"`
-}
-
-// normalize fills ConfirmPassword from the SDK alias when only the alias is sent.
-func (d *Register) normalize() {
-	if d.ConfirmPassword == "" {
-		d.ConfirmPassword = d.PasswordConfirmation
-	}
 }
 
 // Entity builds the user entity for registration.
@@ -98,20 +88,10 @@ type SendActivation struct {
 
 // ResetPassword supports both link-based (token) and OTP-based (session_id) password reset
 type ResetPassword struct {
-	Token           string `json:"token,omitempty"`      // For link-based verification
-	SessionID       string `json:"session_id,omitempty"` // For OTP-based verification
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirm_password"`
-	// PasswordConfirmation is an accepted alias for ConfirmPassword, kept for
-	// compatibility with the published SDK which sends password_confirmation.
+	Token                string `json:"token,omitempty"`      // For link-based verification
+	SessionID            string `json:"session_id,omitempty"` // For OTP-based verification
+	Password             string `json:"password"`
 	PasswordConfirmation string `json:"password_confirmation"`
-}
-
-// normalize fills ConfirmPassword from the SDK alias when only the alias is sent.
-func (d *ResetPassword) normalize() {
-	if d.ConfirmPassword == "" {
-		d.ConfirmPassword = d.PasswordConfirmation
-	}
 }
 
 // EmailChangeResponse is the generic response for email-change endpoints.

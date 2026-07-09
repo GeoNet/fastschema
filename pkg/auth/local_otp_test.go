@@ -307,7 +307,7 @@ func TestLocalAuthOTPRecoveryFlow(t *testing.T) {
 	{
 		req := httptest.NewRequest(
 			"POST", "/user/recover/reset",
-			bytes.NewReader([]byte(`{"session_id": "`+sessionID+`", "password": "newpassword", "confirm_password": "newpassword"}`)),
+			bytes.NewReader([]byte(`{"session_id": "`+sessionID+`", "password": "newpassword", "password_confirmation": "newpassword"}`)),
 		)
 		resp, err := resetServer.Test(req, -1)
 		require.NoError(t, err)

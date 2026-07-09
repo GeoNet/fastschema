@@ -104,7 +104,7 @@ func TestLocalRegister_HookReject(t *testing.T) {
 	provider := createLocalAuthProvider(config)
 	server := createServer(t, fs.Post("/user/register", provider.Register, &fs.Meta{Public: true}))
 
-	body := []byte(`{"username":"rejectme","email":"reject@local.ltd","password":"p","confirm_password":"p"}`)
+	body := []byte(`{"username":"rejectme","email":"reject@local.ltd","password":"p","password_confirmation":"p"}`)
 	req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(body))
 	resp, _ := server.Test(req)
 	defer func() { assert.NoError(t, resp.Body.Close()) }()
@@ -126,7 +126,7 @@ func TestLocalRegister_HookNormalizesEmail(t *testing.T) {
 	provider := createLocalAuthProvider(config)
 	server := createServer(t, fs.Post("/user/register", provider.Register, &fs.Meta{Public: true}))
 
-	body := []byte(`{"username":"normuser","email":"Norm@LOCAL.LTD","password":"p","confirm_password":"p"}`)
+	body := []byte(`{"username":"normuser","email":"Norm@LOCAL.LTD","password":"p","password_confirmation":"p"}`)
 	req := httptest.NewRequest("POST", "/user/register", bytes.NewReader(body))
 	resp, _ := server.Test(req)
 	defer func() { assert.NoError(t, resp.Body.Close()) }()

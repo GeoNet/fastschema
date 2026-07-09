@@ -72,15 +72,13 @@ func ValidateRegisterData(
 	dbClient db.Client,
 	payload *Register,
 ) (err error) {
-	payload.normalize()
-
 	if !utils.IsValidEmail(payload.Email) ||
 		payload.Password == "" ||
-		payload.ConfirmPassword == "" {
+		payload.PasswordConfirmation == "" {
 		return errors.UnprocessableEntity(MSG_INVALID_REGISTRATION)
 	}
 
-	if payload.Password != payload.ConfirmPassword {
+	if payload.Password != payload.PasswordConfirmation {
 		return errors.BadRequest(MSG_INVALID_PASSWORD)
 	}
 

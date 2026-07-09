@@ -47,7 +47,7 @@ var (
 	MSG_INVALID_PASSWORD              = "Invalid password"
 	MSG_INVALID_LOGIN_OR_PASSWORD     = "Invalid login or password" //nolint:gosec // G101: This is an error message, not a hardcoded credential
 	MSG_USER_IS_INACTIVE              = "User is inactive"
-	MSG_INVALID_REGISTRATION          = "Email, password and confirm_password are required"
+	MSG_INVALID_REGISTRATION          = "Email, password and password_confirmation are required"
 	MSG_SEND_ACTIVATION_EMAIL_ERROR   = "Error while sending activation email"
 	MSG_MAILER_NOT_SET                = "Mailer is not set"
 	MSG_CHECKING_USER_ERROR           = "Error checking user"

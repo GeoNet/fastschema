@@ -258,10 +258,10 @@ func TestValidateRegisterData(t *testing.T) {
 			db:   &db.NoopClient{},
 			args: args{
 				payload: &auth.Register{
-					Username:        "",
-					Email:           "",
-					Password:        "",
-					ConfirmPassword: "",
+					Username:             "",
+					Email:                "",
+					Password:             "",
+					PasswordConfirmation: "",
 				},
 			},
 			wantErr: auth.MSG_INVALID_REGISTRATION,
@@ -271,10 +271,10 @@ func TestValidateRegisterData(t *testing.T) {
 			db:   &db.NoopClient{},
 			args: args{
 				payload: &auth.Register{
-					Username:        "newUser",
-					Email:           "new@site.local",
-					Password:        "password",
-					ConfirmPassword: "differentPassword",
+					Username:             "newUser",
+					Email:                "new@site.local",
+					Password:             "password",
+					PasswordConfirmation: "differentPassword",
 				},
 			},
 			wantErr: auth.MSG_INVALID_PASSWORD,
@@ -284,10 +284,10 @@ func TestValidateRegisterData(t *testing.T) {
 			db:   &MockDBClient{},
 			args: args{
 				payload: &auth.Register{
-					Username:        "newUser",
-					Email:           "newUser@site.local",
-					Password:        "password",
-					ConfirmPassword: "password",
+					Username:             "newUser",
+					Email:                "newUser@site.local",
+					Password:             "password",
+					PasswordConfirmation: "password",
 				},
 			},
 			wantErr: "Error checking user",
@@ -301,47 +301,16 @@ func TestValidateRegisterData(t *testing.T) {
 			},
 			args: args{
 				payload: &auth.Register{
-					Username:        "existingUser",
-					Email:           "existing@site.local",
-					Password:        "password",
-					ConfirmPassword: "password",
+					Username:             "existingUser",
+					Email:                "existing@site.local",
+					Password:             "password",
+					PasswordConfirmation: "password",
 				},
 			},
 			wantErr: auth.MSG_EXISTING_USER_WITH_EMAIL,
 		},
 		{
-			name: "confirm_password wins over password_confirmation alias",
-			db:   &db.NoopClient{},
-			args: args{
-				payload: &auth.Register{
-					Username:             "newUser",
-					Email:                "new@site.local",
-					Password:             "password",
-					ConfirmPassword:      "differentPassword",
-					PasswordConfirmation: "password",
-				},
-			},
-			wantErr: auth.MSG_INVALID_PASSWORD,
-		},
-		{
 			name: "successful validation",
-			db: &MockDBClient{
-				model: &MockDBModel{
-					entities: []*entity.Entity{},
-				},
-			},
-			args: args{
-				payload: &auth.Register{
-					Username:        "newUser",
-					Email:           "new@site.local",
-					Password:        "password",
-					ConfirmPassword: "password",
-				},
-			},
-			wantErr: "",
-		},
-		{
-			name: "successful validation via password_confirmation alias",
 			db: &MockDBClient{
 				model: &MockDBModel{
 					entities: []*entity.Entity{},

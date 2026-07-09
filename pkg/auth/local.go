@@ -522,9 +522,7 @@ func (la *LocalProvider) ResetPassword(c fs.Context, data *ResetPassword) (_ boo
 		return false, ERR_INVALID_TOKEN
 	}
 
-	data.normalize()
-
-	if data.Password == "" || data.ConfirmPassword == "" || data.Password != data.ConfirmPassword {
+	if data.Password == "" || data.PasswordConfirmation == "" || data.Password != data.PasswordConfirmation {
 		return false, errors.UnprocessableEntity(MSG_INVALID_PASSWORD)
 	}
 
