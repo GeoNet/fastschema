@@ -22,6 +22,9 @@ func (as *AuthService) LocalLoginWrapper(
 	localAuthProvider *auth.LocalProvider,
 ) func(c fs.Context, payload *auth.LoginData) (*fs.JWTTokens, error) {
 	return func(c fs.Context, payload *auth.LoginData) (*fs.JWTTokens, error) {
+		if as.IsLocalLoginDisabled() {
+			return nil, errors.Forbidden("local login is disabled")
+		}
 		user, err := localAuthProvider.LocalLogin(c, payload)
 		if err != nil {
 			return nil, err

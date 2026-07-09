@@ -72,6 +72,44 @@ func Setup(
 	return nil
 }
 
+// SetupRolesOnly seeds the built-in roles without creating a password root. It
+// is used when local login is disabled: no password account can sign in, so the
+// admin is bootstrapped on first federated login via the admin-email allowlist.
+func SetupRolesOnly(
+	ctx context.Context,
+	dbClient db.Client,
+	logger logger.Logger,
+) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v\n%s", r, string(debug.Stack()))
+		}
+	}()
+
+	tx := utils.Must(dbClient.Tx(ctx))
+
+	defer func() {
+		if err != nil {
+			logger.Error(err)
+			if err := tx.Rollback(); err != nil {
+				logger.Errorf("rollback error: %w", err)
+			}
+		}
+	}()
+
+	utils.Must(CreateRole(ctx, tx, fs.RoleAdmin))
+	utils.Must(CreateRole(ctx, tx, fs.RoleUser))
+	utils.Must(CreateRole(ctx, tx, fs.RoleGuest))
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	logger.Info("Setup roles successfully; sign in with a configured admin email to gain admin access")
+
+	return nil
+}
+
 func CreateRole(ctx context.Context, dbc db.Client, roleData *fs.Role) (*fs.Role, error) {
 	id, err := uuid.NewV7()
 	if err != nil {

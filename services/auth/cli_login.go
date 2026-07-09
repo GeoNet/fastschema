@@ -82,6 +82,9 @@ func (as *AuthService) CLIInitiate(c fs.Context, req *cliInitiateRequest) (*cliI
 // and returns a loopback redirect carrying a one-time code. The JWT is minted
 // server-side and stashed in the OTC store; it never reaches the browser.
 func (as *AuthService) CLILocalLogin(c fs.Context, req *cliLocalLoginRequest) (*cliRedirectResponse, error) {
+	if as.IsLocalLoginDisabled() {
+		return nil, errors.Forbidden("local login is disabled")
+	}
 	cfg := as.cliLoginConfig()
 	if !cliLoginEnabled(cfg) {
 		return nil, errors.Forbidden("cli login is disabled")
@@ -116,6 +119,9 @@ func (as *AuthService) CLILocalLogin(c fs.Context, req *cliLocalLoginRequest) (*
 // CLIOTPLogin completes a passwordless OTP login (after /auth/otp/request) and
 // returns a loopback redirect carrying a one-time code. JWT stays server-side.
 func (as *AuthService) CLIOTPLogin(c fs.Context, req *cliOTPLoginRequest) (*cliRedirectResponse, error) {
+	if as.IsLocalLoginDisabled() {
+		return nil, errors.Forbidden("local login is disabled")
+	}
 	cfg := as.cliLoginConfig()
 	if !cliLoginEnabled(cfg) {
 		return nil, errors.Forbidden("cli login is disabled")

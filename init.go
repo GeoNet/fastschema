@@ -262,7 +262,14 @@ func (a *App) createSetupPage() error {
 				return false, errors.Forbidden("Invalid setup data or token")
 			}
 
-			if err := ts.Setup(
+			// With local login disabled there is no password root to create; seed
+			// the roles only and let the admin-email allowlist grant admin on the
+			// first federated login.
+			if a.config.AuthConfig != nil && a.config.AuthConfig.DisableLocalLogin {
+				if err := ts.SetupRolesOnly(c, a.DB(), a.Logger()); err != nil {
+					return false, err
+				}
+			} else if err := ts.Setup(
 				c,
 				a.DB(),
 				a.Logger(),
@@ -534,6 +541,16 @@ func (a *App) createAuthProviders() (err error) {
 		a.config.AuthConfig.CLILogin.AllowedRedirectHosts = hosts
 	}
 
+	// Federated-only mode: disable password + OTP login. The admin allowlist
+	// bootstraps the root account since no password root could sign in.
+	if strings.ToLower(utils.Env("AUTH_DISABLE_LOCAL_LOGIN")) == "true" {
+		a.config.AuthConfig.DisableLocalLogin = true
+	}
+
+	if emails := splitCSVEnv("AUTH_ADMIN_EMAILS"); len(emails) > 0 {
+		a.config.AuthConfig.AdminEmails = emails
+	}
+
 	if a.config.AuthConfig.EnabledProviders == nil {
 		a.config.AuthConfig.EnabledProviders = []string{}
 	}
@@ -613,6 +630,24 @@ func (a *App) createAuthProviders() (err error) {
 		}
 
 		a.authProviders[auth.ProviderOTP] = otpProvider
+	}
+
+	// Lockout guard: federated-only mode with no federated provider leaves no way
+	// to sign in. Fail fast at startup rather than shipping an unusable instance.
+	if a.config.AuthConfig.DisableLocalLogin {
+		hasFederated := false
+		for name := range a.authProviders {
+			if name != auth.ProviderLocal && name != auth.ProviderOTP {
+				hasFederated = true
+				break
+			}
+		}
+		if !hasFederated {
+			return fmt.Errorf(
+				"AUTH_DISABLE_LOCAL_LOGIN is set but no federated auth provider is configured; " +
+					"the app would have no usable login. Enable at least one social provider or re-enable local login",
+			)
+		}
 	}
 
 	return nil

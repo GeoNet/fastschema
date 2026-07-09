@@ -160,12 +160,23 @@ func (as *AuthService) createUser(c fs.Context, providerUser *fs.User) (*fs.User
 		return nil, errors.Unauthorized(auth.MSG_EXISTING_USER_WITH_EMAIL)
 	}
 
-	// Resolve the User role by name from cache; role name is the stable identifier across deployments.
+	// Resolve the role by name from cache; role name is the stable identifier across deployments.
 	// Fail closed: refuse to create an orphan user if the role is missing from cache.
-	userRole := as.RoleByName(fs.RoleUser.Name)
-	if userRole == nil {
+	role := as.RoleByName(fs.RoleUser.Name)
+	if role == nil {
 		c.Logger().Errorf("role '%s' not found in cache; cannot create new social user", fs.RoleUser.Name)
 		return nil, errors.InternalServerError("user role not available")
+	}
+
+	// Bootstrap: a configured admin email is granted the admin role on its first
+	// federated login. Trusts the provider-supplied email; only enable this for
+	// providers that return verified emails.
+	if as.isAdminEmail(providerUser.Email) {
+		if adminRole := as.RoleByName(fs.RoleAdmin.Name); adminRole != nil {
+			role = adminRole
+		} else {
+			c.Logger().Errorf("role '%s' not found in cache; admin email falls back to user role", fs.RoleAdmin.Name)
+		}
 	}
 
 	userEntity := fs.Map{
@@ -175,7 +186,7 @@ func (as *AuthService) createUser(c fs.Context, providerUser *fs.User) (*fs.User
 		"username":          strings.TrimSpace(providerUser.Username),
 		"email":             strings.TrimSpace(providerUser.Email),
 		"active":            true,
-		"roles":             []*entity.Entity{entity.New(userRole.ID)},
+		"roles":             []*entity.Entity{entity.New(role.ID)},
 	}
 
 	if providerUser.FirstName != "" {
@@ -196,7 +207,7 @@ func (as *AuthService) createUser(c fs.Context, providerUser *fs.User) (*fs.User
 	}
 
 	// Carry the resolved role object so GenerateJWTTokens encodes the real role ID in the token.
-	newUser.Roles = []*fs.Role{userRole}
+	newUser.Roles = []*fs.Role{role}
 
 	return newUser, nil
 }

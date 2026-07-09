@@ -379,7 +379,10 @@ func TestAuthMethodsWhitelistedDTO(t *testing.T) {
 
 	dto, err := as.AuthMethods(newCaptureContext(), nil)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"local", "github", "google"}, dto.Providers)
+	// "local" is never exposed in the provider list (it is not a social button);
+	// the dedicated Local flag drives the username/password form instead.
+	assert.Equal(t, []string{"github", "google"}, dto.Providers)
+	assert.True(t, dto.Local)
 	assert.True(t, dto.OTP)
 
 	// OTP disabled => false.
@@ -388,5 +391,19 @@ func TestAuthMethodsWhitelistedDTO(t *testing.T) {
 	}
 	dto, err = as.AuthMethods(newCaptureContext(), nil)
 	require.NoError(t, err)
+	assert.False(t, dto.OTP)
+
+	// Federated-only mode: local form hidden and OTP forced off even if enabled.
+	as.AppConfig = func() *fs.Config {
+		return &fs.Config{AuthConfig: &fs.AuthConfig{
+			EnabledProviders:  []string{"local", "google"},
+			DisableLocalLogin: true,
+			OTP:               &fs.OTPConfig{Enabled: true},
+		}}
+	}
+	dto, err = as.AuthMethods(newCaptureContext(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"google"}, dto.Providers)
+	assert.False(t, dto.Local)
 	assert.False(t, dto.OTP)
 }

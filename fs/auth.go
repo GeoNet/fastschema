@@ -151,6 +151,19 @@ type AuthConfig struct {
 	OTP                  *OTPConfig          `json:"otp"`                    // OTP configuration
 	Registration         *RegistrationPolicy `json:"registration"`           // opt-in signup policy
 	CLILogin             *CLILoginConfig     `json:"cli_login"`              // opt-in CLI / native-app login
+
+	// DisableLocalLogin turns off password-based (and passwordless OTP) login so
+	// only federated providers remain. Password and OTP are single- or
+	// email-channel factors; delegating to an identity provider lets the
+	// organization enforce MFA at the provider. The local provider stays
+	// registered (email-change, admin password reset), only the login/OTP and
+	// self-service signup surfaces are gated off.
+	DisableLocalLogin bool `json:"disable_local_login"` // default: false
+
+	// AdminEmails are granted the admin role on their first federated login. This
+	// bootstraps the root account when local login is disabled (no password root
+	// can sign in). Only trust providers that return verified emails.
+	AdminEmails []string `json:"admin_emails"`
 }
 
 func (ac *AuthConfig) Clone() *AuthConfig {
@@ -167,6 +180,11 @@ func (ac *AuthConfig) Clone() *AuthConfig {
 		OTP:                  ac.OTP.Clone(),
 		Registration:         ac.Registration.Clone(),
 		CLILogin:             ac.CLILogin.Clone(),
+		DisableLocalLogin:    ac.DisableLocalLogin,
+	}
+
+	if ac.AdminEmails != nil {
+		clone.AdminEmails = append([]string{}, ac.AdminEmails...)
 	}
 
 	copy(clone.EnabledProviders, ac.EnabledProviders)

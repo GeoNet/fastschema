@@ -104,24 +104,35 @@ func (as *AuthService) CreateResource(api *fs.Resource, authProviders map[string
 		// flow; ungated since codes only exist once minted (gate is at mint time).
 		Add(fs.Post("exchange", as.Exchange, &fs.Meta{Public: true}))
 
-	authGroup.
-		Group(auth.ProviderLocal).
-		Add(
-			fs.Post("login", as.LocalLoginWrapper(localAuthProvider), &fs.Meta{Public: true}),
+	localGroup := authGroup.Group(auth.ProviderLocal)
+	localGroup.Add(
+		// login stays registered but the wrapper returns 403 when local login is
+		// disabled, mirroring the always-registered/handler-gated cli routes.
+		fs.Post("login", as.LocalLoginWrapper(localAuthProvider), &fs.Meta{Public: true}),
+		// email/change requires an authenticated caller; the handler enforces
+		// c.User() != nil (Public avoids needing a per-user permission entry). Kept
+		// available in every mode so existing accounts can still manage their email.
+		fs.Post("email/change", localAuthProvider.ChangeEmail, &fs.Meta{Public: true}),
+		fs.Post("email/confirm", localAuthProvider.ConfirmEmailChange, &fs.Meta{Public: true}),
+	)
+
+	// Self-service password signup/recovery only applies when password login is
+	// on; drop these routes entirely in federated-only mode.
+	if !as.IsLocalLoginDisabled() {
+		localGroup.Add(
 			fs.Post("register", localAuthProvider.Register, &fs.Meta{Public: true}),
 			fs.Post("activate", localAuthProvider.Activate, &fs.Meta{Public: true}),
 			fs.Post("activate/send", localAuthProvider.SendActivationLink, &fs.Meta{Public: true}),
 			fs.Post("recover", localAuthProvider.Recover, &fs.Meta{Public: true}),
 			fs.Post("recover/check", localAuthProvider.RecoverCheck, &fs.Meta{Public: true}),
 			fs.Post("recover/reset", localAuthProvider.ResetPassword, &fs.Meta{Public: true}),
-			// email/change requires an authenticated caller; the handler enforces
-			// c.User() != nil (Public avoids needing a per-user permission entry).
-			fs.Post("email/change", localAuthProvider.ChangeEmail, &fs.Meta{Public: true}),
-			fs.Post("email/confirm", localAuthProvider.ConfirmEmailChange, &fs.Meta{Public: true}),
 		)
+	}
 
-	// OTP passwordless login endpoints
-	if otpProvider, ok := as.GetAuthProvider(auth.ProviderOTP).(*auth.OTPProvider); ok && otpProvider.IsEnabled() {
+	// OTP passwordless login endpoints. Gated off alongside local login: an
+	// email code is a single factor and does not satisfy federated-only sign-in.
+	if otpProvider, ok := as.GetAuthProvider(auth.ProviderOTP).(*auth.OTPProvider); ok &&
+		otpProvider.IsEnabled() && !as.IsLocalLoginDisabled() {
 		authGroup.Group("otp").
 			Add(
 				fs.Post("request", as.OTPRequestWrapper(otpProvider), &fs.Meta{Public: true}),
