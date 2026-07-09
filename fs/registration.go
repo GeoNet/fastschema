@@ -9,12 +9,12 @@ import "context"
 // the caller applies the mutated values to the persisted entity. Returning a
 // non-nil error aborts registration before the user row is created.
 type RegistrationInput struct {
-	Email      string         // signup email (mutable)
-	Username   string         // signup username (mutable)
-	Provider   string         // "local" or the OAuth provider name
-	ProviderID string         // OAuth provider subject id (empty for local)
-	Profile    map[string]any // optional raw provider profile (OAuth)
-	IsOAuth    bool           // true for social-login registration
+	Email      string         `json:"email"`       // signup email (mutable)
+	Username   string         `json:"username"`    // signup username (mutable)
+	Provider   string         `json:"provider"`    // "local" or the OAuth provider name
+	ProviderID string         `json:"provider_id"` // OAuth provider subject id (empty for local)
+	Profile    map[string]any `json:"profile"`     // optional raw provider profile (OAuth)
+	IsOAuth    bool           `json:"is_oauth"`    // true for social-login registration
 }
 
 // PreUserRegisterHook runs just before a self-service user row is created.
