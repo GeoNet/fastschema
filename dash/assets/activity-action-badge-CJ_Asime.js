@@ -1,0 +1,1 @@
+import{Br as e,Ir as t,M as n}from"./index-j-tQslDj.js";var r=e(t()),i={create:`default`,update:`secondary`,delete:`destructive`};const a=({action:e})=>(0,r.jsx)(n,{variant:e&&i[e]||`outline`,children:e??`unknown`});export{a as t};
