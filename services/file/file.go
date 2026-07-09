@@ -2,11 +2,19 @@ package file
 
 import (
 	"context"
+	"strings"
 
 	"github.com/fastschema/fastschema/db"
 	"github.com/fastschema/fastschema/entity"
 	"github.com/fastschema/fastschema/fs"
 )
+
+// isAbsoluteURL reports whether path is a full http(s) URL. Such a path points
+// to an externally hosted file: it must be served verbatim, never prefixed with
+// a disk base URL, and has no storage object to delete.
+func isAbsoluteURL(path string) bool {
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
 
 type AppLike interface {
 	DB() db.Client
@@ -46,8 +54,13 @@ func (m *FileService) FileListHook(
 
 	for _, entity := range entities {
 		path := entity.GetString("path")
-		disk := m.Disk(entity.GetString("disk"))
 
+		if isAbsoluteURL(path) {
+			entity.Set("url", path)
+			continue
+		}
+
+		disk := m.Disk(entity.GetString("disk"))
 		if path != "" && disk != nil {
 			entity.Set("url", disk.URL(path))
 		}

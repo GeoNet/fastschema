@@ -74,3 +74,29 @@ func TestFileServiceDelete(t *testing.T) {
 	defer func() { assert.NoError(t, resp.Body.Close()) }()
 	assert.Equal(t, 200, resp.StatusCode)
 }
+
+// A record referencing an external URL owns no storage object; deleting it must
+// remove only the row and skip disk.Delete (which would otherwise fail).
+func TestFileServiceDeleteURLRecord(t *testing.T) {
+	ms, server := createFileService(t)
+	userModel := utils.Must(ms.DB().Model("user"))
+	userID := utils.Must(userModel.CreateFromJSON(context.Background(), `{
+		"username": "test",
+		"password": "test",
+		"provider": "local"
+	}`))
+	fileModel := utils.Must(ms.DB().Model("file"))
+	fileID := utils.Must(fileModel.CreateFromJSON(context.Background(), fmt.Sprintf(`{
+		"disk": "",
+		"path": "https://cdn.example.com/img.png",
+		"name": "img.png",
+		"size": 1,
+		"type": "image/png",
+		"owner_id": "%v"
+	}`, userID)))
+
+	req := httptest.NewRequest("DELETE", "/file", bytes.NewReader([]byte(fmt.Sprintf(`["%v"]`, fileID))))
+	resp := utils.Must(server.Test(req))
+	defer func() { assert.NoError(t, resp.Body.Close()) }()
+	assert.Equal(t, 200, resp.StatusCode)
+}

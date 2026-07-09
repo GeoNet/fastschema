@@ -1,10 +1,12 @@
 package file_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
 	"github.com/fastschema/fastschema/db"
+	"github.com/fastschema/fastschema/entity"
 	"github.com/fastschema/fastschema/fs"
 	"github.com/fastschema/fastschema/logger"
 	"github.com/fastschema/fastschema/pkg/entdbadapter"
@@ -80,4 +82,21 @@ func TestCreateResource(t *testing.T) {
 	service.CreateResource(api)
 	assert.NotNil(t, api.Find("api.file.upload"))
 	assert.NotNil(t, api.Find("api.file.delete"))
+}
+
+// A file record whose path is an absolute URL points to an externally hosted
+// file: its url must be served verbatim, never prefixed with a disk base URL.
+func TestFileListHookAbsoluteURL(t *testing.T) {
+	service, _ := createFileService(t)
+	query := &db.QueryOption{Schema: &schema.Schema{Name: "file"}}
+
+	external := entity.New().Set("path", "https://cdn.example.com/img.png").Set("disk", "")
+	relative := entity.New().Set("path", "some/path/test.txt").Set("disk", "local_test")
+
+	out, err := service.FileListHook(context.Background(), query, []*entity.Entity{external, relative})
+	assert.NoError(t, err)
+
+	assert.Equal(t, "https://cdn.example.com/img.png", out[0].GetString("url"))
+	assert.Contains(t, out[1].GetString("url"), "http://localhost:3000/files")
+	assert.Contains(t, out[1].GetString("url"), "some/path/test.txt")
 }

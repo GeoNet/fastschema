@@ -24,7 +24,17 @@ func (m *FileService) Delete(c fs.Context, fileIDs []uuid.UUID) (any, error) {
 	}
 
 	for _, file := range files {
+		// Records referencing an external URL own no storage object; only the row
+		// is removed. Calling disk.Delete here would fail (or panic on a nil disk).
+		if isAbsoluteURL(file.Path) {
+			continue
+		}
+
 		disk := m.Disk(file.Disk)
+		if disk == nil {
+			continue
+		}
+
 		if err := disk.Delete(c, file.Path); err != nil {
 			return nil, errors.InternalServerError("Failed to delete file: %s", err)
 		}
