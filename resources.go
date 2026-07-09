@@ -16,6 +16,16 @@ type AppConfig struct {
 	Resources []*fs.Resource   `json:"resources"`
 }
 
+// Brand is the public white-label payload served to guests so the login and
+// setup screens can render the deployment's brand before authentication.
+// It deliberately excludes schemas/resources/version to avoid leaking internals.
+type Brand struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Logo        string `json:"logo"`
+	Favicon     string `json:"favicon"`
+}
+
 func (a *App) createServices() {
 	a.services = services.New(a)
 	realTimeService := a.services.Realtime()
@@ -101,6 +111,22 @@ func (a *App) createResources() {
 			Resources: a.ResourcesList(),
 		}, nil
 	}))
+
+	// Public brand endpoint: guests need it to render login/setup with the
+	// deployment's brand. Brand data is static, so it is safe to cache.
+	a.api.Add(fs.Get("config/brand", func(c fs.Context, _ any) (*Brand, error) {
+		name := a.config.BrandName
+		if name == "" {
+			name = a.config.AppName
+		}
+		c.Header("Cache-Control", "public, max-age=3600")
+		return &Brand{
+			Name:        name,
+			Description: a.config.BrandDescription,
+			Logo:        a.config.BrandLogo,
+			Favicon:     a.config.BrandFavicon,
+		}, nil
+	}, &fs.Meta{Public: true}))
 
 	a.resources.Group("docs").
 		Add(fs.NewResource("spec", func(c fs.Context, _ any) (any, error) {

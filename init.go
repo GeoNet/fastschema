@@ -165,6 +165,24 @@ func (a *App) prepareConfig() (err error) {
 		a.config.AppName = utils.Env("APP_NAME", "FastSchema")
 	}
 
+	// White-label brand, populated from env so a single embedded binary can be
+	// rebranded per deployment without rebuilding the dash bundle.
+	if a.config.BrandName == "" {
+		a.config.BrandName = utils.Env("APP_BRAND_NAME")
+	}
+
+	if a.config.BrandDescription == "" {
+		a.config.BrandDescription = utils.Env("APP_BRAND_DESCRIPTION")
+	}
+
+	if a.config.BrandLogo == "" {
+		a.config.BrandLogo = utils.Env("APP_BRAND_LOGO")
+	}
+
+	if a.config.BrandFavicon == "" {
+		a.config.BrandFavicon = utils.Env("APP_BRAND_FAVICON")
+	}
+
 	if a.config.MaxRequestBodySize == 0 {
 		a.config.MaxRequestBodySize = utils.EnvInt("MAX_REQUEST_BODY_SIZE", 4*1024*1024) // 4MB
 	}

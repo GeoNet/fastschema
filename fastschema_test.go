@@ -723,6 +723,18 @@ func TestFastschemaResources(t *testing.T) {
 	defer func() { assert.NoError(t, resp.Body.Close()) }()
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Contains(t, utils.Must(utils.ReadCloserToString(resp.Body)), `"version":"`)
+
+	// Test public brand endpoint: guest (no auth) gets 200 with name falling
+	// back to AppName, and no leaked schemas/version.
+	req = httptest.NewRequest("GET", "/api/config/brand", nil)
+	resp = utils.Must(server.Test(req))
+	defer func() { assert.NoError(t, resp.Body.Close()) }()
+	assert.Equal(t, 200, resp.StatusCode)
+	brandBody := utils.Must(utils.ReadCloserToString(resp.Body))
+	// Name falls back to the configured AppName when APP_BRAND_NAME is unset.
+	assert.Contains(t, brandBody, fmt.Sprintf(`"name":%q`, a.Config().AppName))
+	assert.NotContains(t, brandBody, `"version"`)
+	assert.Contains(t, resp.Header.Get("Cache-Control"), "max-age")
 }
 
 func TestFastschemaStart(t *testing.T) {

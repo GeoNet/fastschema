@@ -9,6 +9,10 @@ type Config struct {
 	Dir                    string                        `json:"dir"`
 	AppName                string                        `json:"app_name"`
 	AppKey                 string                        `json:"app_key"`
+	BrandName              string                        `json:"brand_name"`        // White-label brand name shown in the dash; empty falls back to AppName
+	BrandDescription       string                        `json:"brand_description"` // Tagline shown under the brand name
+	BrandLogo              string                        `json:"brand_logo"`        // Logo as URL, data-URI, or inline SVG (sanitized client-side)
+	BrandFavicon           string                        `json:"brand_favicon"`     // Favicon as URL, data-URI, or inline SVG (sanitized client-side)
 	Port                   string                        `json:"port"`
 	BaseURL                string                        `json:"base_url"`
 	DashURL                string                        `json:"dash_url"`
@@ -34,6 +38,10 @@ func (ac *Config) Clone() *Config {
 		Dir:                ac.Dir,
 		AppName:            ac.AppName,
 		AppKey:             ac.AppKey,
+		BrandName:          ac.BrandName,
+		BrandDescription:   ac.BrandDescription,
+		BrandLogo:          ac.BrandLogo,
+		BrandFavicon:       ac.BrandFavicon,
 		Port:               ac.Port,
 		BaseURL:            ac.BaseURL,
 		DashURL:            ac.DashURL,
