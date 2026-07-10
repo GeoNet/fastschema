@@ -2,6 +2,7 @@ package restfulresolver
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/fastschema/fastschema/fs"
 	"github.com/fastschema/fastschema/logger"
@@ -48,46 +49,6 @@ func (r *RestfulResolver) init(logger logger.Logger) *RestfulResolver {
 		CreateMiddlewareRequestLog(r.config.StaticFSs),
 	}, TransformMiddlewares(r.config.ResourceManager.Middlewares)...)...)
 
-	// Static files
-	for _, staticResource := range r.config.StaticFSs {
-		if staticResource.RootFS != nil {
-			r.server.App.Use(staticResource.BasePath, filesystem.New(filesystem.Config{
-				Root:         staticResource.RootFS,
-				PathPrefix:   staticResource.FSPrefix,
-				NotFoundFile: staticResource.NotFoundFile,
-				Next: func(c *fiber.Ctx) bool {
-					// skip serving static files for root path
-					return c.Path() == "/" || c.Path() == ""
-				},
-			}))
-		} else {
-			config := staticResource.Config
-			if config == nil {
-				config = &fs.StaticConfig{}
-			}
-
-			r.server.App.Static(staticResource.BasePath, staticResource.RootDir, fiber.Static{
-				Index:         config.Index,
-				Browse:        config.Browse,
-				MaxAge:        config.MaxAge,
-				Compress:      config.Compress,
-				ByteRange:     config.ByteRange,
-				Download:      config.Download,
-				CacheDuration: config.CacheDuration,
-			})
-		}
-	}
-
-	// The public directory is served at root path
-	// If the request path file is not found,
-	// filesystem will set status to 404
-	// We need to reset status to 200 because
-	// we want to continue to resolve the request
-	r.server.App.Use(func(c *fiber.Ctx) error {
-		c.Status(fiber.StatusOK)
-		return c.Next()
-	})
-
 	var getHooks = func() *fs.Hooks {
 		return &fs.Hooks{}
 	}
@@ -99,7 +60,66 @@ func (r *RestfulResolver) init(logger logger.Logger) *RestfulResolver {
 	manager := r.server.Group(r.config.ResourceManager.Name(), nil)
 	RegisterResourceRoutes(r.config.ResourceManager.Resources(), manager, getHooks)
 
+	// Statics are registered after the API routes, and must stay last. A disk can
+	// be published at any path, including the root, so a file on disk would other-
+	// wise shadow an API route sharing its URL. Being last also means a static that
+	// misses hands the request straight to fiber's not-found handler: no route
+	// downstream can inherit the 404 status that filesystem.New sets before it
+	// calls Next.
+	r.registerStatics()
+
 	return r
+}
+
+// pathIsUnderMount reports whether path is the mount itself or sits below it.
+// Fiber matches a mount prefix without a path-segment boundary, so /dashboard
+// would match a /dash mount.
+func pathIsUnderMount(path, basePath string) bool {
+	if path == "" || path == "/" {
+		return false
+	}
+
+	// A mount may be written with or without a trailing slash. Both name the
+	// same prefix, so normalize before comparing.
+	basePath = strings.TrimSuffix(basePath, "/")
+	if basePath == "" {
+		return true
+	}
+
+	return path == basePath || strings.HasPrefix(path, basePath+"/")
+}
+
+func (r *RestfulResolver) registerStatics() {
+	for _, staticResource := range r.config.StaticFSs {
+		if staticResource.RootFS != nil {
+			basePath := staticResource.BasePath
+			r.server.App.Use(basePath, filesystem.New(filesystem.Config{
+				Root:         staticResource.RootFS,
+				PathPrefix:   staticResource.FSPrefix,
+				NotFoundFile: staticResource.NotFoundFile,
+				Next: func(c *fiber.Ctx) bool {
+					return !pathIsUnderMount(c.Path(), basePath)
+				},
+			}))
+
+			continue
+		}
+
+		config := staticResource.Config
+		if config == nil {
+			config = &fs.StaticConfig{}
+		}
+
+		r.server.App.Static(staticResource.BasePath, staticResource.RootDir, fiber.Static{
+			Index:         config.Index,
+			Browse:        config.Browse,
+			MaxAge:        config.MaxAge,
+			Compress:      config.Compress,
+			ByteRange:     config.ByteRange,
+			Download:      config.Download,
+			CacheDuration: config.CacheDuration,
+		})
+	}
 }
 
 func (r *RestfulResolver) Server() *Server {

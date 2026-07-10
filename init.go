@@ -93,6 +93,18 @@ func (a *App) init() (err error) {
 				fmt.Sprintf("Serving files from disk [%s:%s] at %s", disk.Name(), publicPath, disk.Root()),
 			)
 
+			// Publishing a disk at the root path puts uploads in the same URL space
+			// as every route. API routes are matched first so they cannot be shadowed,
+			// but any file uploaded under a name that collides with a future route is
+			// served in its place. Valid, and worth saying out loud.
+			if publicPath == "/" {
+				a.startupMessages = append(
+					a.startupMessages,
+					fmt.Sprintf("Disk [%s] is published at the root path. Uploaded files share the "+
+						"URL space of the app routes. Consider a dedicated path such as /files", disk.Name()),
+				)
+			}
+
 			a.statics = append(a.statics, &fs.StaticFs{
 				BasePath: publicPath,
 				RootDir:  disk.Root(),
@@ -205,6 +217,17 @@ func (a *App) prepareConfig() (err error) {
 
 	if a.config.DashBaseName == "" {
 		a.config.DashBaseName = utils.Env("APP_DASH_BASE_NAME", "dash")
+	}
+
+	// The dash is mounted at /<DashBaseName> and the API at /<APIBaseName>. Equal
+	// names would mount the dash SPA fallback over the whole API namespace, which
+	// answers every unmatched GET with HTML instead of the API response.
+	if a.config.DashBaseName == a.config.APIBaseName {
+		return fmt.Errorf(
+			"APP_DASH_BASE_NAME and APP_API_BASE_NAME are both %q; "+
+				"the dash would be served over the API namespace. Use different names",
+			a.config.DashBaseName,
+		)
 	}
 
 	if a.config.BaseURL == "" {
