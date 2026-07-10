@@ -13,6 +13,7 @@ func TestDiskConfigClone(t *testing.T) {
 		Driver:          "test",
 		Root:            "test",
 		BaseURL:         "test",
+		PublicPath:      "/files",
 		GetBaseURL:      func() string { return "test" },
 		Provider:        "test",
 		Endpoint:        "test",
@@ -29,6 +30,7 @@ func TestDiskConfigClone(t *testing.T) {
 	assert.Equal(t, dc.Driver, clone.Driver)
 	assert.Equal(t, dc.Root, clone.Root)
 	assert.Equal(t, dc.BaseURL, clone.BaseURL)
+	assert.Equal(t, dc.PublicPath, clone.PublicPath)
 	assert.Equal(t, dc.GetBaseURL(), clone.GetBaseURL())
 	assert.Equal(t, dc.Provider, clone.Provider)
 	assert.Equal(t, dc.Endpoint, clone.Endpoint)
