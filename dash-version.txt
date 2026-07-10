@@ -1,4 +1,4 @@
 dash bundle source: fastschema/js (apps/dash)
-js commit: b1cd1ab (branch main)
-built: 2026-07-09 (white-label dashboard branding: brand name, description, logo and favicon resolved from a public config endpoint and merged over the FastSchema defaults on the client; sdk 1.7.0)
+js commit: 101986e (branch main)
+built: 2026-07-10 (page header shell with title, meta line and actions; content record delete: row, edit page and bulk; unsaved-changes guard fixed for content forms; sdk 1.9.0)
 vite base: /dash/
