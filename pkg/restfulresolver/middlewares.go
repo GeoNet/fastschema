@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/fastschema/fastschema/fs"
 	"github.com/fastschema/fastschema/logger"
-	"github.com/fastschema/fastschema/pkg/utils"
 	"github.com/google/uuid"
 )
 
@@ -31,24 +29,41 @@ func MiddlewareRequestID(c *Context) error {
 	return c.Next()
 }
 
+// responseStatus reports the status that will actually reach the client. On the
+// error path the response is not written yet: the error handler runs after every
+// middleware has unwound, so the error itself is the only source of truth.
+func responseStatus(c *Context, err error) int {
+	if err == nil {
+		return c.Response().StatusCode()
+	}
+
+	return ErrorStatus(err)
+}
+
 func CreateMiddlewareRequestLog(statics []*fs.StaticFs) func(c *Context) error {
-	ignoreLogPaths := utils.Map(statics, func(s *fs.StaticFs) string {
-		return s.BasePath
-	})
+	staticRoutes := make(map[string]bool, len(statics))
+	for _, static := range statics {
+		staticRoutes[static.BasePath] = true
+	}
 
 	return func(c *Context) error {
-		for _, path := range ignoreLogPaths {
-			if strings.HasPrefix(c.Path(), path) {
-				return c.Next()
-			}
-		}
-
 		start := time.Now()
 		err := c.Next()
+		status := responseStatus(c, err)
+
+		// Static assets are served on every page view and would drown the log.
+		// Skip only what a static mount actually served: c.Route() is read after
+		// Next, so it names the route that handled the request rather than a path
+		// that merely shares a prefix with a mount. A miss under a mount, or an
+		// error, still gets logged: those are the requests worth seeing.
+		if err == nil && status < 400 && staticRoutes[c.ctx.Route().Path] {
+			return nil
+		}
+
 		latency := time.Since(start).Round(time.Microsecond)
 		logContext := logger.LogContext{
 			"latency": latency.String(),
-			"status":  c.Response().StatusCode(),
+			"status":  status,
 			"method":  c.Method(),
 			"path":    c.Path(),
 			"ip":      c.IP(),

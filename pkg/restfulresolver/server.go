@@ -5,6 +5,7 @@ import (
 
 	"github.com/fastschema/fastschema/fs"
 	"github.com/fastschema/fastschema/logger"
+	"github.com/fastschema/fastschema/pkg/errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/utils"
@@ -23,6 +24,32 @@ type Config struct {
 	Logger             logger.Logger
 }
 
+// ErrorStatus reports the HTTP status an error is served with. It is the single
+// source of truth shared by the error handler, which writes the status, and the
+// request log, which reports it: fiber writes the status only after every
+// middleware has unwound, so the log cannot read it back from the response.
+func ErrorStatus(err error) int {
+	var appErr *errors.Error
+	if errors.As(err, &appErr) && appErr.Status != 0 {
+		return appErr.Status
+	}
+
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		return fiberErr.Code
+	}
+
+	return fiber.StatusInternalServerError
+}
+
+// errorHandler mirrors fiber.DefaultErrorHandler but also honors the status of
+// an errors.Error. Without it an errors.Unauthorized returned to fiber would be
+// served as 500, because fiber only recognizes its own error type.
+func errorHandler(c *fiber.Ctx, err error) error {
+	c.Set(fiber.HeaderContentType, fiber.MIMETextPlainCharsetUTF8)
+	return c.Status(ErrorStatus(err)).SendString(err.Error())
+}
+
 func New(config Config) *Server {
 	app := fiber.New(fiber.Config{
 		AppName:               config.AppName,
@@ -32,6 +59,7 @@ func New(config Config) *Server {
 		DisableStartupMessage: true,
 		JSONEncoder:           config.JSONEncoder,
 		BodyLimit:             config.MaxRequestBodySize,
+		ErrorHandler:          errorHandler,
 		// Prefork:       true,
 		// Immutable:     true,
 	})
