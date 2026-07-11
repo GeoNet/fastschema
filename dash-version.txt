@@ -1,4 +1,4 @@
 dash bundle source: fastschema/js (apps/dash)
-js commit: 101986e (branch main)
-built: 2026-07-10 (page header shell with title, meta line and actions; content record delete: row, edit page and bulk; unsaved-changes guard fixed for content forms; sdk 1.9.0)
+js commit: bdc9d4a (branch main)
+built: 2026-07-11 (sidebar open state restored from cookie; schema editor flat surface in dark mode; content create navigates to the new record and clears the unsaved guard; edit forms open pristine)
 vite base: /dash/

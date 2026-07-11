@@ -1,1 +1,0 @@
-import{Gr as e,R as t,Yr as n}from"./index-Xj2sZifz.js";var r=n(e()),i={create:`default`,update:`secondary`,delete:`destructive`};const a=({action:e})=>(0,r.jsx)(t,{variant:e&&i[e]||`outline`,children:e??`unknown`});export{a as t};
