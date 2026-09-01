@@ -85,7 +85,7 @@ func (r *BaseRcloneDisk) PutMultipart(
 	fileHeader := make([]byte, 512)
 
 	n, err := io.ReadFull(f, fileHeader)
-	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 

@@ -1,6 +1,7 @@
 package restfulresolver
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -284,7 +285,7 @@ func (c *Context) Files() ([]*fs.File, error) {
 			m := make([]byte, 512)
 
 			n, err := io.ReadFull(f, m)
-			if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+			if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
 				return nil, err
 			}
 
