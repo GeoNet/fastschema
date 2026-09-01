@@ -84,7 +84,8 @@ func (r *BaseRcloneDisk) PutMultipart(
 
 	fileHeader := make([]byte, 512)
 
-	if _, err := f.Read(fileHeader); err != nil {
+	n, err := io.ReadFull(f, fileHeader)
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
 		return nil, err
 	}
 
@@ -93,7 +94,7 @@ func (r *BaseRcloneDisk) PutMultipart(
 	}
 
 	dst := ""
-	fileType := http.DetectContentType(fileHeader)
+	fileType := http.DetectContentType(fileHeader[:n])
 
 	if !r.IsAllowedMime(strings.ToLower(fileType)) {
 		return nil, errors.New("file type is not allowed")

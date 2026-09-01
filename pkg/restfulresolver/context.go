@@ -2,6 +2,7 @@ package restfulresolver
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -282,7 +283,8 @@ func (c *Context) Files() ([]*fs.File, error) {
 
 			m := make([]byte, 512)
 
-			if _, err := f.Read(m); err != nil {
+			n, err := io.ReadFull(f, m)
+			if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
 				return nil, err
 			}
 
@@ -293,7 +295,7 @@ func (c *Context) Files() ([]*fs.File, error) {
 			files = append(files, &fs.File{
 				Name:   fileHeader.Filename,
 				Size:   uint64(fileHeader.Size),
-				Type:   http.DetectContentType(m),
+				Type:   http.DetectContentType(m[:n]),
 				Reader: f,
 			})
 		}
